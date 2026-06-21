@@ -1,0 +1,14 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+# generated outputs
+data.db
+**/books.csv
+**/books.json
+invoice.json
+
+# generated test artifacts
+leads.db
+*.db
+report.html
