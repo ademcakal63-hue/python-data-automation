@@ -43,7 +43,7 @@ def load_dir(folder: str, exts=(".md", ".txt", ".pdf")):
 
 
 # --------------------------------------------------------------------------- #
-# Chunking  (paragraph-aware, packed to ~size with overlap)
+# Chunking  (markdown-header-aware, falls back to paragraph splitting)
 # --------------------------------------------------------------------------- #
 def chunk_text(text: str, size: int = 600):
     """Markdown header-aware: each ## section becomes one focused chunk
@@ -99,13 +99,26 @@ class Embedder:
         if self.mode == "tfidf":
             from sklearn.feature_extraction.text import TfidfVectorizer
             self._vec = TfidfVectorizer(stop_words="english", ngram_range=(1, 2))
-            return self._norm(self._vec.fit_transform(texts).toarray())
+            try:
+                return self._norm(self._vec.fit_transform(texts).toarray())
+            except ValueError:
+                # empty vocabulary (e.g. blank / scanned PDF with no extractable
+                # text, or only stop-words) -> retry without stop-word filtering,
+                # then fall back to zero vectors so ingest never crashes.
+                self._vec = TfidfVectorizer(ngram_range=(1, 2))
+                try:
+                    return self._norm(self._vec.fit_transform(texts).toarray())
+                except ValueError:
+                    self._vec = None
+                    return np.zeros((len(texts), 1), dtype="float32")
         if self.mode == "sbert":
             return self._norm(self._st.encode(texts))
         return self._norm(self._openai(texts))
 
     def encode_query(self, q):
         if self.mode == "tfidf":
+            if getattr(self, "_vec", None) is None:   # empty-corpus fallback
+                return np.zeros(1, dtype="float32")
             return self._norm(self._vec.transform([q]).toarray())[0]
         if self.mode == "sbert":
             return self._norm(self._st.encode([q]))[0]
@@ -131,6 +144,8 @@ class RAG:
 
     def ingest_docs(self, docs):
         for src, text in docs:
+            if not text or not text.strip():   # skip blank / scanned-only docs
+                continue
             for ch in chunk_text(text):
                 self.chunks.append({"text": ch, "source": src})
         self._build()

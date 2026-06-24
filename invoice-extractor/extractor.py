@@ -69,11 +69,11 @@ def extract_with_regex(text: str) -> dict:
     lines = [l for l in text.splitlines() if l.strip()]
 
     # total: prefer grand/genel total; else the largest 'total' amount that is NOT a subtotal
-    total = _line_amount(text, r"grand\s*total|genel\s*toplam")
+    total = _line_amount(text, r"grand\s*total|genel\s*toplam|amount\s+due|balance\s+due")
     if not total:
         cands = []
         for ln in lines:
-            if re.search(r"(?<![a-z])(?:total|toplam)", ln, re.I) and not re.search(r"sub\s*-?\s*total|ara\s*toplam", ln, re.I):
+            if re.search(r"(?<![a-z])(?:total|toplam)|amount\s+due|balance\s+due", ln, re.I) and not re.search(r"sub\s*-?\s*total|ara\s*toplam", ln, re.I):
                 cleaned = re.sub(r"\d+\s*%", "", ln)
                 cands += re.findall(r"[0-9][0-9.,]*[0-9]", cleaned)
         if cands:

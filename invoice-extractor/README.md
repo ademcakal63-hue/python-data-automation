@@ -5,7 +5,7 @@ Drop a PDF invoice, get clean structured data back — **vendor, invoice number,
 Built in Python. Two extraction paths:
 
 - **LLM path (Claude)** — layout-agnostic. Handles invoices it has never seen. Needs an `ANTHROPIC_API_KEY`.
-- **Regex fallback** — no API key, no cost. Extracts the most common fields. Always available.
+- **Regex fallback** — no API key, no cost. Extracts the most common fields. Always available. Note: `line_items` are populated only on the Claude (LLM) path; the regex path returns `[]`.
 
 ## Demo
 

@@ -9,6 +9,16 @@ import sys
 import json
 
 
+def _truncate(text: str, limit: int) -> str:
+    """Truncate to <= limit chars without splitting a word mid-way."""
+    if len(text) <= limit:
+        return text
+    cut = text[:limit]
+    if " " in cut and not text[limit].isspace():
+        cut = cut[:cut.rfind(" ")]
+    return cut.rstrip()
+
+
 def generate_template(p: dict) -> dict:
     name = p.get("name", "Product")
     features = p.get("features") or []
@@ -21,30 +31,36 @@ def generate_template(p: dict) -> dict:
         f"Easy to use, built to last, and ready whenever you are - the {name} earns its place."
     )
     return {
-        "meta_title": f"{name} | Buy {kw.title()} Online"[:60],
-        "meta_description": (f"Shop the {name}. {feat_sentence.capitalize()}. Fast shipping and easy returns.")[:155],
+        "meta_title": _truncate(f"{name} | Buy {kw.title()} Online", 60),
+        "meta_description": _truncate(f"Shop the {name}. {feat_sentence.capitalize()}. Fast shipping and easy returns.", 155),
         "description": desc,
-        "bullets": features or ["High-quality build", "Great everyday value", "Reliable performance"],
+        "bullets": (features or ["High-quality build", "Great everyday value", "Reliable performance"])[:5],
     }
 
 
 def generate_llm(p: dict) -> dict:
-    import anthropic
-    client = anthropic.Anthropic()
-    prompt = (
-        "You are an e-commerce SEO copywriter. For the product below, return ONLY JSON with keys: "
-        '"meta_title" (<=60 chars), "meta_description" (<=155 chars), '
-        '"description" (2-3 sentences), "bullets" (3-5 short feature bullets). '
-        "Natural, benefit-led, not keyword-stuffed.\nPRODUCT:\n" + json.dumps(p)
-    )
-    r = client.messages.create(
-        model="claude-haiku-4-5-20251001", max_tokens=600,
-        messages=[{"role": "user", "content": prompt}],
-    )
-    txt = r.content[0].text.strip()
-    if txt.startswith("```"):
-        txt = txt.split("```")[1].lstrip("json").strip()
-    return json.loads(txt)
+    try:
+        import anthropic
+        client = anthropic.Anthropic()
+        prompt = (
+            "You are an e-commerce SEO copywriter. For the product below, return ONLY JSON with keys: "
+            '"meta_title" (<=60 chars), "meta_description" (<=155 chars), '
+            '"description" (2-3 sentences), "bullets" (3-5 short feature bullets). '
+            "Natural, benefit-led, not keyword-stuffed.\nPRODUCT:\n" + json.dumps(p)
+        )
+        r = client.messages.create(
+            model="claude-haiku-4-5-20251001", max_tokens=600,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        txt = r.content[0].text.strip()
+        if txt[:7].lower() == "```json":
+            txt = txt[7:]
+        else:
+            txt = txt.removeprefix("```")
+        txt = txt.removesuffix("```").strip()
+        return json.loads(txt)
+    except Exception:
+        return generate_template(p)
 
 
 def generate(product: dict) -> dict:

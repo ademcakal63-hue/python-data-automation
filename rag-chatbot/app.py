@@ -49,6 +49,7 @@ if not rag:
 
 b = rag.backend
 st.caption(f"embeddings: **{b['embeddings']}**  ·  generation: **{b['generation']}**  ·  {b['chunks']} chunks")
+st.caption("'Confidence' is retrieval similarity to your docs — with TF-IDF (no API key) these numbers run low; that's expected.")
 
 for m in st.session_state.messages:
     with st.chat_message(m["role"]):

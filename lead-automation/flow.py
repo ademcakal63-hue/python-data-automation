@@ -50,7 +50,13 @@ def qualify_llm(lead: dict) -> dict:
 
 def process_lead(lead: dict) -> dict:
     _init()
-    q = qualify_llm(lead) if os.getenv("ANTHROPIC_API_KEY") else qualify_rules(lead)
+    if os.getenv("ANTHROPIC_API_KEY"):
+        try:
+            q = qualify_llm(lead)
+        except Exception:
+            q = qualify_rules(lead)
+    else:
+        q = qualify_rules(lead)
     contact = lead.get("email") or lead.get("phone") or "no contact"
     if q["intent"] == "hot":
         notify = f"HOT lead: {lead.get('name')} ({contact}) score {q['score']} - follow up now!"
