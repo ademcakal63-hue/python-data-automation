@@ -80,8 +80,10 @@ def extract_with_regex(text: str) -> dict:
             total = max(cands, key=lambda x: float(x.replace(",", "")))
 
     return {
-        "vendor": (lines[0].strip() if lines else None),
-        "invoice_number": _find(r"(?:invoice|fatura)\s*(?:no|number|#|:)?\s*[:#]?\s*([A-Z0-9][A-Z0-9\-\/]+)", text),
+        "vendor": next((l.strip() for l in lines if l.strip()
+                        and not re.match(r"^\s*(?:invoice|bill|receipt|fatura|tax\s*invoice|date|tarih)\b", l, re.I)
+                        and not re.match(r"^[\W\d]+$", l)), (lines[0].strip() if lines else None)),
+        "invoice_number": _find(r"(?:invoice|fatura)\s*(?:no\.?|number|#)?[^\S\n]*[:#]?[^\S\n]*([A-Z0-9][A-Z0-9\-\/]*\d[A-Z0-9\-\/]*)", text),
         "date": _find(r"(?<!due\s)(?:date|tarih)\s*[:#]?\s*([0-9]{1,4}[\.\-\/][0-9]{1,2}[\.\-\/][0-9]{1,4})", text),
         "due_date": _find(r"(?:due\s*date|vade)\s*[:#]?\s*([0-9]{1,4}[\.\-\/][0-9]{1,2}[\.\-\/][0-9]{1,4})", text),
         "currency": _find(r"\b(USD|EUR|TRY|GBP|TL)\b", text) or _find(r"([\$€£])", text),

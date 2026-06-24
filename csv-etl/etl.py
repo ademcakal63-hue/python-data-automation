@@ -22,12 +22,11 @@ def clean(df: pd.DataFrame) -> pd.DataFrame:
     if "email" in df.columns:
         df["email"] = df["email"].str.lower()
     if "amount" in df.columns:
-        df["amount"] = (
-            df["amount"].astype(str)
-            .str.replace(r"[^0-9.,\-]", "", regex=True)
-            .str.replace(",", "", regex=False)
-        )
-        df["amount"] = pd.to_numeric(df["amount"], errors="coerce")
+        s = df["amount"].astype(str)
+        neg = s.str.contains(r"\(.*\d.*\)", regex=True)     # accounting negatives, e.g. (500)
+        s = s.str.replace(r"[^0-9.\-]", "", regex=True)     # strip currency, commas, parens
+        df["amount"] = pd.to_numeric(s, errors="coerce")
+        df.loc[neg, "amount"] = -df.loc[neg, "amount"].abs()
     if "date" in df.columns:
         df["date"] = pd.to_datetime(df["date"], errors="coerce", format="mixed", dayfirst=False).dt.strftime("%Y-%m-%d")
 

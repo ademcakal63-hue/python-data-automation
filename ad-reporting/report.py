@@ -11,7 +11,9 @@ import json
 
 def load(path):
     with open(path, newline="", encoding="utf-8") as f:
-        return list(csv.DictReader(f))
+        rows = list(csv.DictReader(f))
+    # normalize headers so real platform exports work (Google/Meta use "Clicks", "Spend", ...)
+    return [{(k.strip().lower() if k else k): v for k, v in r.items()} for r in rows]
 
 
 def num(x):

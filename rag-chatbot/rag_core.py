@@ -176,9 +176,9 @@ class RAG:
                 model="gpt-4o-mini", max_tokens=500,
                 messages=[{"role": "system", "content": system}] + hist + [{"role": "user", "content": user}])
             return r.choices[0].message.content.strip()
-        # extractive fallback (no key): summarise from the top chunk
-        top = context.split("\n\n---\n\n")[0]
-        return "Based on the documents:\n\n" + top.strip()
+        # extractive fallback (no key): return all retrieved passages so the
+        # answer text always matches the cited sources (no citation mismatch).
+        return "Based on the documents:\n\n" + context.strip()
 
     def answer(self, query, k=4):
         hits = self.retrieve(query, k)
